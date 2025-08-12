@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 min-h-screen transition-colors duration-200">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">Shopping Calculator</h1>
+            <p class="text-gray-600 dark:text-gray-400">Add items and calculate your total shopping cost</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="mb-6">
+            <nav class="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                <button id="shoppingTab" 
+                        class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 bg-white dark:bg-gray-700 text-primary border border-primary">
+                    Current Shopping
+                </button>
+                <button id="projectsTab" 
+                        class="flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Saved Projects (<span id="projectCount">0</span>)
+                </button>
+            </nav>
+        </div>
+
+        <!-- Add Item Form -->
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-6 shadow-sm">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Add New Item</h2>
+            <form id="itemForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="itemName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name</label>
+                    <input type="text" id="itemName" required 
+                           class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Enter item name">
+                </div>
+                <div>
+                    <label for="itemQuantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                    <input type="number" id="itemQuantity" required min="0.01" step="0.01"
+                           class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="1">
+                </div>
+                <div>
+                    <label for="itemPrice" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Price ($)</label>
+                    <input type="number" id="itemPrice" required min="0" step="0.01"
+                           class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="0.00">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" 
+                            class="w-full bg-primary hover:bg-purple-700 active:bg-purple-800 text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 touch-manipulation">
+                        Add Item
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Items List -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Shopping List</h2>
+            </div>
+            
+            <div id="emptyState" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+                <p>No items added yet. Add your first item above!</p>
+            </div>
+
+            <div id="itemsList" class="hidden">
+                <!-- Desktop Table -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Unit Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Cards -->
+                <div id="itemsCards" class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                </div>
+
+                <!-- Grand Total -->
+                <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-semibold text-gray-800 dark:text-white">Grand Total:</span>
+                        <span id="grandTotal" class="text-2xl font-bold text-primary">$0.00</span>
+                    </div>
+                    <div class="mt-2 flex justify-between items-center">
+                        <button id="saveProjectBtn" 
+                                class="px-4 py-2 text-sm font-medium bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200">
+                            Save Shopping Trip
+                        </button>
+                        <div class="space-x-3">
+                            <button id="newProjectBtn" 
+                                    class="px-4 py-2 text-sm font-medium bg-primary hover:bg-purple-700 text-white rounded-md transition-colors duration-200">
+                                New Shopping Trip
+                            </button>
+                            <button id="clearAllBtn" 
+                                    class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200">
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Projects Section -->
+        <div id="projectsSection" class="hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Saved Shopping Trips</h2>
+                </div>
+                
+                <div id="projectsEmptyState" class="p-8 text-center text-gray-500 dark:text-gray-400">
+                    <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    <p>No saved shopping trips yet. Complete a shopping trip and save it to start comparing prices!</p>
+                </div>
+
+                <div id="projectsList" class="hidden">
+                    <div id="projectsContainer"></div>
+                </div>
+            </div>
+
+            <!-- Price Comparison Section -->
+            <div id="priceComparisonSection" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Price Comparison</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Compare prices of the same items across different shopping trips</p>
+                </div>
+                <div id="comparisonResults" class="p-6">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Project Modal -->
+    <div id="saveProjectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Save Shopping Trip</h3>
+            </div>
+            <form id="saveProjectForm" class="p-6 space-y-4">
+                <div>
+                    <label for="projectName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Trip Name</label>
+                    <input type="text" id="projectName" required 
+                           class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="e.g., Walmart - Weekly Groceries">
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <strong>Items:</strong> <span id="saveProjectItemCount">0</span><br>
+                        <strong>Total:</strong> <span id="saveProjectTotal">$0.00</span><br>
+                        <strong>Date:</strong> <span id="saveProjectDate"></span>
+                    </p>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="cancelSaveProject" 
+                            class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200">
+                        Save Trip
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Edit Item</h3>
+            </div>
+            <form id="editForm" class="p-6 space-y-4">
+                <div>
+                    <label for="editName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name</label>
+                    <input type="text" id="editName" required 
+                           class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+                <div>
+                    <label for="editQuantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                    <input type="number" id="editQuantity" required min="0.01" step="0.01"
+                           class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+                <div>
+                    <label for="editPrice" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Price ($)</label>
+                    <input type="number" id="editPrice" required min="0" step="0.01"
+                           class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="cancelEdit" 
+                            class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-primary hover:bg-purple-700 text-white rounded-md transition-colors duration-200">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-sm w-full">
+            <div class="p-6">
+                <p id="confirmMessage" class="text-gray-700 dark:text-gray-300 mb-4"></p>
+                <div class="flex justify-end space-x-3">
+                    <button id="confirmCancel" 
+                            class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button id="confirmOk" 
+                            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors duration-200">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode support
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // App state
+        let items = [];
+        let editingIndex = -1;
+        let currentProject = {
+            id: Date.now(),
+            name: '',
+            date: new Date().toLocaleDateString(),
+            items: [],
+            total: 0
+        };
+        let savedProjects = [];
+        let currentView = 'shopping'; // 'shopping' or 'projects'
+
+        // DOM elements
+        const itemForm = document.getElementById('itemForm');
+        const itemsList = document.getElementById('itemsList');
+        const emptyState = document.getElementById('emptyState');
+        const itemsTableBody = document.getElementById('itemsTableBody');
+        const itemsCards = document.getElementById('itemsCards');
+        const grandTotal = document.getElementById('grandTotal');
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+        const confirmModal = document.getElementById('confirmModal');
+
+        // Utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function showConfirmDialog(message, onConfirm) {
+            document.getElementById('confirmMessage').textContent = message;
+            confirmModal.classList.remove('hidden');
+            
+            function handleConfirm() {
+                confirmModal.classList.add('hidden');
+                onConfirm();
+                cleanup();
+            }
+            
+            function handleCancel() {
+                confirmModal.classList.add('hidden');
+                cleanup();
+            }
+            
+            function cleanup() {
+                document.getElementById('confirmOk').removeEventListener('click', handleConfirm);
+                document.getElementById('confirmCancel').removeEventListener('click', handleCancel);
+            }
+            
+            document.getElementById('confirmOk').addEventListener('click', handleConfirm);
+            document.getElementById('confirmCancel').addEventListener('click', handleCancel);
+        }
+
+        // Add item
+        itemForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('itemName').value.trim();
+            const quantity = parseFloat(document.getElementById('itemQuantity').value);
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            
+            if (name && quantity > 0 && price >= 0) {
+                const item = {
+                    id: Date.now(),
+                    name,
+                    quantity,
+                    price,
+                    total: quantity * price
+                };
+                
+                items.push(item);
+                updateDisplay();
+                itemForm.reset();
+            }
+        });
+
+        // Update display
+        function updateDisplay() {
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+                itemsList.classList.add('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            itemsList.classList.remove('hidden');
+            
+            // Update table (desktop)
+            itemsTableBody.innerHTML = '';
+            items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = 'fade-in hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${item.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${item.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatCurrency(item.price)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">${formatCurrency(item.total)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                        <button onclick="editItem(${index})" class="text-primary hover:text-purple-700 font-medium py-1 px-2 touch-manipulation">Edit</button>
+                        <button onclick="deleteItem(${index})" class="text-red-500 hover:text-red-700 font-medium py-1 px-2 touch-manipulation">Delete</button>
+                    </td>
+                `;
+                itemsTableBody.appendChild(row);
+            });
+            
+            // Update cards (mobile)
+            itemsCards.innerHTML = '';
+            items.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'p-4 fade-in';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-medium text-gray-900 dark:text-white">${item.name}</h3>
+                        <div class="flex space-x-3 ml-4">
+                            <button onclick="editItem(${index})" class="text-primary hover:text-purple-700 text-sm font-medium py-1 px-2 touch-manipulation">Edit</button>
+                            <button onclick="deleteItem(${index})" class="text-red-500 hover:text-red-700 text-sm font-medium py-1 px-2 touch-manipulation">Delete</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <div>Qty: ${item.quantity}</div>
+                        <div>Price: ${formatCurrency(item.price)}</div>
+                        <div class="text-right font-semibold text-gray-900 dark:text-white">Total: ${formatCurrency(item.total)}</div>
+                    </div>
+                `;
+                itemsCards.appendChild(card);
+            });
+            
+            // Update grand total
+            const total = items.reduce((sum, item) => sum + item.total, 0);
+            grandTotal.textContent = formatCurrency(total);
+        }
+
+        // Edit item
+        function editItem(index) {
+            editingIndex = index;
+            const item = items[index];
+            
+            document.getElementById('editName').value = item.name;
+            document.getElementById('editQuantity').value = item.quantity;
+            document.getElementById('editPrice').value = item.price;
+            
+            editModal.classList.remove('hidden');
+        }
+
+        // Delete item
+        function deleteItem(index) {
+            showConfirmDialog('Are you sure you want to delete this item?', () => {
+                items.splice(index, 1);
+                updateDisplay();
+            });
+        }
+
+        // Clear all items
+        document.getElementById('clearAllBtn').addEventListener('click', function() {
+            showConfirmDialog('Are you sure you want to clear all items?', () => {
+                items = [];
+                updateDisplay();
+            });
+        });
+
+        // Edit form handlers
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('editName').value.trim();
+            const quantity = parseFloat(document.getElementById('editQuantity').value);
+            const price = parseFloat(document.getElementById('editPrice').value);
+            
+            if (name && quantity > 0 && price >= 0) {
+                items[editingIndex] = {
+                    id: items[editingIndex].id,
+                    name,
+                    quantity,
+                    price,
+                    total: quantity * price
+                };
+                
+                updateDisplay();
+                editModal.classList.add('hidden');
+                editingIndex = -1;
+            }
+        });
+
+        document.getElementById('cancelEdit').addEventListener('click', function() {
+            editModal.classList.add('hidden');
+            editingIndex = -1;
+        });
+
+        // Close modals when clicking outside
+        editModal.addEventListener('click', function(e) {
+            if (e.target === editModal) {
+                editModal.classList.add('hidden');
+                editingIndex = -1;
+            }
+        });
+
+        confirmModal.addEventListener('click', function(e) {
+            if (e.target === confirmModal) {
+                confirmModal.classList.add('hidden');
+            }
+        });
+
+        // Project Management Functions
+        function switchView(view) {
+            currentView = view;
+            const shoppingTab = document.getElementById('shoppingTab');
+            const projectsTab = document.getElementById('projectsTab');
+            const shoppingSection = document.querySelector('.container > div:nth-child(3)'); // Add Item Form
+            const itemsSection = document.querySelector('.container > div:nth-child(4)'); // Items List
+            const projectsSection = document.getElementById('projectsSection');
+            
+            if (view === 'shopping') {
+                shoppingTab.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 bg-white dark:bg-gray-700 text-primary border border-primary';
+                projectsTab.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700';
+                shoppingSection.classList.remove('hidden');
+                itemsSection.classList.remove('hidden');
+                projectsSection.classList.add('hidden');
+            } else {
+                projectsTab.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 bg-white dark:bg-gray-700 text-primary border border-primary';
+                shoppingTab.className = 'flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700';
+                shoppingSection.classList.add('hidden');
+                itemsSection.classList.add('hidden');
+                projectsSection.classList.remove('hidden');
+                updateProjectsDisplay();
+            }
+        }
+
+        function saveProject() {
+            if (items.length === 0) {
+                showAlert('Please add some items before saving the shopping trip.');
+                return;
+            }
+            
+            const total = items.reduce((sum, item) => sum + item.total, 0);
+            document.getElementById('saveProjectItemCount').textContent = items.length;
+            document.getElementById('saveProjectTotal').textContent = formatCurrency(total);
+            document.getElementById('saveProjectDate').textContent = new Date().toLocaleDateString();
+            document.getElementById('saveProjectModal').classList.remove('hidden');
+        }
+
+        function newProject() {
+            if (items.length > 0) {
+                showConfirmDialog('Starting a new shopping trip will clear current items. Continue?', () => {
+                    startNewProject();
+                });
+            } else {
+                startNewProject();
+            }
+        }
+
+        function startNewProject() {
+            items = [];
+            currentProject = {
+                id: Date.now(),
+                name: '',
+                date: new Date().toLocaleDateString(),
+                items: [],
+                total: 0
+            };
+            updateDisplay();
+        }
+
+        function updateProjectsDisplay() {
+            const projectsEmptyState = document.getElementById('projectsEmptyState');
+            const projectsList = document.getElementById('projectsList');
+            const projectsContainer = document.getElementById('projectsContainer');
+            const comparisonSection = document.getElementById('priceComparisonSection');
+            
+            document.getElementById('projectCount').textContent = savedProjects.length;
+            
+            if (savedProjects.length === 0) {
+                projectsEmptyState.classList.remove('hidden');
+                projectsList.classList.add('hidden');
+                comparisonSection.classList.add('hidden');
+                return;
+            }
+            
+            projectsEmptyState.classList.add('hidden');
+            projectsList.classList.remove('hidden');
+            
+            // Display saved projects
+            projectsContainer.innerHTML = '';
+            savedProjects.forEach((project, index) => {
+                const projectCard = document.createElement('div');
+                projectCard.className = 'border-b border-gray-200 dark:border-gray-700 p-6 fade-in';
+                projectCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${project.name}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${project.date} • ${project.items.length} items</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-lg font-bold text-primary">${formatCurrency(project.total)}</span>
+                            <button onclick="deleteProject(${index})" class="text-red-500 hover:text-red-700 text-sm font-medium py-1 px-2 touch-manipulation">Delete</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                        ${project.items.map(item => `
+                            <div class="bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                                <span class="font-medium text-gray-900 dark:text-white">${item.name}</span><br>
+                                <span class="text-gray-500 dark:text-gray-400">${item.quantity} × ${formatCurrency(item.price)} = ${formatCurrency(item.total)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                projectsContainer.appendChild(projectCard);
+            });
+            
+            // Show price comparison if we have projects
+            updatePriceComparison();
+        }
+
+        function deleteProject(index) {
+            showConfirmDialog('Are you sure you want to delete this shopping trip?', () => {
+                savedProjects.splice(index, 1);
+                updateProjectsDisplay();
+            });
+        }
+
+        function updatePriceComparison() {
+            const comparisonSection = document.getElementById('priceComparisonSection');
+            const comparisonResults = document.getElementById('comparisonResults');
+            
+            if (savedProjects.length < 2) {
+                comparisonSection.classList.add('hidden');
+                return;
+            }
+            
+            comparisonSection.classList.remove('hidden');
+            
+            // Group items by name across all projects
+            const itemComparisons = {};
+            
+            savedProjects.forEach((project, projectIndex) => {
+                project.items.forEach(item => {
+                    const itemName = item.name.toLowerCase().trim();
+                    if (!itemComparisons[itemName]) {
+                        itemComparisons[itemName] = {
+                            name: item.name,
+                            occurrences: []
+                        };
+                    }
+                    itemComparisons[itemName].occurrences.push({
+                        projectName: project.name,
+                        projectDate: project.date,
+                        price: item.price,
+                        quantity: item.quantity,
+                        total: item.total
+                    });
+                });
+            });
+            
+            // Filter items that appear in multiple projects
+            const comparableItems = Object.values(itemComparisons).filter(item => item.occurrences.length > 1);
+            
+            if (comparableItems.length === 0) {
+                comparisonResults.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No common items found across different shopping trips for comparison.</p>';
+                return;
+            }
+            
+            comparisonResults.innerHTML = '';
+            comparableItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg';
+                
+                const prices = item.occurrences.map(occ => occ.price);
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+                
+                itemDiv.innerHTML = `
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-3">${item.name}</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        <div class="text-center p-2 bg-green-100 dark:bg-green-900 rounded">
+                            <div class="text-sm text-green-600 dark:text-green-400">Lowest Price</div>
+                            <div class="font-bold text-green-700 dark:text-green-300">${formatCurrency(minPrice)}</div>
+                        </div>
+                        <div class="text-center p-2 bg-blue-100 dark:bg-blue-900 rounded">
+                            <div class="text-sm text-blue-600 dark:text-blue-400">Average Price</div>
+                            <div class="font-bold text-blue-700 dark:text-blue-300">${formatCurrency(avgPrice)}</div>
+                        </div>
+                        <div class="text-center p-2 bg-red-100 dark:bg-red-900 rounded">
+                            <div class="text-sm text-red-600 dark:text-red-400">Highest Price</div>
+                            <div class="font-bold text-red-700 dark:text-red-300">${formatCurrency(maxPrice)}</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        ${item.occurrences.map(occ => `
+                            <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded text-sm">
+                                <span class="font-medium text-gray-900 dark:text-white">${occ.projectName}</span>
+                                <span class="text-gray-500 dark:text-gray-400">${occ.projectDate}</span>
+                                <span class="font-semibold ${occ.price === minPrice ? 'text-green-600 dark:text-green-400' : occ.price === maxPrice ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}">${formatCurrency(occ.price)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                comparisonResults.appendChild(itemDiv);
+            });
+        }
+
+        function showAlert(message) {
+            const alertModal = document.createElement('div');
+            alertModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            alertModal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">${message}</p>
+                    <div class="flex justify-end">
+                        <button class="px-4 py-2 bg-primary hover:bg-purple-700 text-white rounded-md" onclick="this.closest('.fixed').remove()">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(alertModal);
+        }
+
+        // Event Listeners
+        document.getElementById('shoppingTab').addEventListener('click', () => switchView('shopping'));
+        document.getElementById('projectsTab').addEventListener('click', () => switchView('projects'));
+        document.getElementById('saveProjectBtn').addEventListener('click', saveProject);
+        document.getElementById('newProjectBtn').addEventListener('click', newProject);
+
+        // Save Project Modal
+        document.getElementById('saveProjectForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const projectName = document.getElementById('projectName').value.trim();
+            if (!projectName) return;
+            
+            const total = items.reduce((sum, item) => sum + item.total, 0);
+            const project = {
+                id: Date.now(),
+                name: projectName,
+                date: new Date().toLocaleDateString(),
+                items: [...items], // Copy current items
+                total: total
+            };
+            
+            savedProjects.push(project);
+            document.getElementById('saveProjectModal').classList.add('hidden');
+            document.getElementById('projectName').value = '';
+            
+            // Start a new project after saving
+            startNewProject();
+            
+            // Update project count in tab
+            document.getElementById('projectCount').textContent = savedProjects.length;
+            
+            showAlert('Shopping trip saved successfully!');
+        });
+
+        document.getElementById('cancelSaveProject').addEventListener('click', function() {
+            document.getElementById('saveProjectModal').classList.add('hidden');
+            document.getElementById('projectName').value = '';
+        });
+
+        // Close save project modal when clicking outside
+        document.getElementById('saveProjectModal').addEventListener('click', function(e) {
+            if (e.target === document.getElementById('saveProjectModal')) {
+                document.getElementById('saveProjectModal').classList.add('hidden');
+                document.getElementById('projectName').value = '';
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>
